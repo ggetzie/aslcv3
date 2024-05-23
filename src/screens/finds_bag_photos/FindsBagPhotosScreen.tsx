@@ -11,8 +11,9 @@ import {
   View,
 } from 'react-native';
 import {Divider} from 'react-native-elements';
-import ImagePicker, {
-  ImagePickerOptions,
+import {
+  CameraOptions,
+  launchCamera,
   ImagePickerResponse,
 } from 'react-native-image-picker';
 import {useDispatch, useSelector} from 'react-redux';
@@ -47,32 +48,26 @@ import PhotoGrid from '../../components/PhotoGrid';
 
 type Props = StackScreenProps<FindsStackParamList, 'FindsBagPhotosScreen'>;
 
-const imagePickerOptions: ImagePickerOptions = {
-  title: 'Select Photo',
+const imagePickerOptions: CameraOptions = {
   mediaType: 'photo',
   cameraType: 'back',
-  takePhotoButtonTitle: 'Take Photo',
-  allowsEditing: true,
-  storageOptions: {
-    skipBackup: true,
-    path: 'images',
-  },
+  saveToPhotos: false,
 };
 
 const FindsBagPhotosScreen = ({navigation}: Props) => {
   const dispatch = useDispatch();
 
-  const selectedContextId: string = useSelector(
+  const selectedContextId: string | null = useSelector(
     ({reducer}: {reducer: AslReducerState}) =>
       reducer.selectedSpatialContext !== null
         ? reducer.selectedSpatialContext.id
         : null,
   );
 
-  const selectedArea: SpatialArea = useSelector(
+  const selectedArea: SpatialArea | null = useSelector(
     ({reducer}: {reducer: AslReducerState}) => reducer.selectedSpatialArea,
   );
-  const selectedContext: SpatialContext = useSelector(
+  const selectedContext: SpatialContext | null = useSelector(
     ({reducer}: {reducer: AslReducerState}) => reducer.selectedSpatialContext,
   );
   const spatialString = getSpatialString(selectedArea, selectedContext);
@@ -99,11 +94,11 @@ const FindsBagPhotosScreen = ({navigation}: Props) => {
     }
     setLoadingMessage('refreshingContext');
     getContextDetail(selectedContext.id)
-      .then((spatialContext) => {
+      .then(spatialContext => {
         dispatch({type: SET_SELECTED_SPATIAL_CONTEXT, payload: spatialContext});
         setLoadingMessage('hidden');
       })
-      .catch((error) => {
+      .catch(error => {
         console.log(error);
         alert('Error fetching context');
         setLoadingMessage('hidden');
@@ -114,12 +109,12 @@ const FindsBagPhotosScreen = ({navigation}: Props) => {
     if (selectedContext !== null) {
       setDryingPhotos(
         selectedContext.bagphoto_set.filter(
-          (photo) => getBagPhotoSource(photo.photo_url) == Source.D,
+          photo => getBagPhotoSource(photo.photo_url) == Source.D,
         ),
       );
       setFieldPhotos(
         selectedContext.bagphoto_set.filter(
-          (photo) => getBagPhotoSource(photo.photo_url) == Source.F,
+          photo => getBagPhotoSource(photo.photo_url) == Source.F,
         ),
       );
     }
@@ -150,13 +145,16 @@ const FindsBagPhotosScreen = ({navigation}: Props) => {
             const form: FormData = new FormData();
             try {
               form.append('photo', {
-                uri: response.uri,
-                type: response.type,
-                name: response.fileName,
+                uri: response.assets![0].uri,
+                type: response.assets![0].type,
+                name: response.assets![0].fileName,
               } as any);
               form.append('source', source);
-              await uploadBagPhoto(form, selectedContextId, ({loaded, total}) =>
-                setUploadedPct(Math.round((loaded * 100) / total)),
+              await uploadBagPhoto(
+                form,
+                selectedContextId as string,
+                ({loaded, total}) =>
+                  setUploadedPct(Math.round((loaded * 100) / total)),
               );
               setShowUploadProgress(false);
               setLoadingMessage('refreshingContext');
@@ -186,13 +184,14 @@ const FindsBagPhotosScreen = ({navigation}: Props) => {
         <CameraModal
           isVisible={imagePickStage}
           onTakePhoto={() => {
-            ImagePicker.launchCamera(
+            launchCamera(
               imagePickerOptions,
               async (response: ImagePickerResponse) => {
                 if (response.didCancel) {
                   setImagePickStage(false);
-                } else if (response.error) {
+                } else if (response.errorCode) {
                   alert('Error selecting Image');
+                  console.log(response.errorMessage);
                 } else {
                   await uploadImage(response);
                 }

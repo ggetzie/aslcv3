@@ -3,9 +3,10 @@ import * as React from 'react';
 import {useEffect, useState} from 'react';
 import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {Divider} from 'react-native-elements';
-import ImagePicker, {
-  ImagePickerOptions,
+import {
+  launchCamera,
   ImagePickerResponse,
+  CameraOptions,
 } from 'react-native-image-picker';
 import {useDispatch, useSelector} from 'react-redux';
 import {PaddingComponent} from '../../components/PaddingComponent';
@@ -45,16 +46,10 @@ import PhotoGrid from '../../components/PhotoGrid';
 import UploadProgressModal from '../../components/UploadProgressModal';
 import {ScreenColors} from '../../constants/EnumsAndInterfaces/AppState';
 
-const imagePickerOptions: ImagePickerOptions = {
-  title: 'Select Photo',
+const imagePickerOptions: CameraOptions = {
   mediaType: 'photo',
   cameraType: 'back',
-  takePhotoButtonTitle: 'Take Photo',
-  allowsEditing: true,
-  storageOptions: {
-    skipBackup: true,
-    path: 'images',
-  },
+  saveToPhotos: false,
 };
 type Props = StackScreenProps<ContextStackParamList, 'ContextDetailScreen'>;
 
@@ -111,12 +106,12 @@ const ContextDetailScreen = ({navigation}: Props) => {
     }
     setLoadingMessage('refreshingContext');
     getContextDetail(selectedContext.id)
-      .then((spatialContext) => {
+      .then(spatialContext => {
         dispatch({type: SET_SELECTED_SPATIAL_CONTEXT, payload: spatialContext});
         setMutableContext(spatialContext);
         setLoadingMessage('hidden');
       })
-      .catch((error) => {
+      .catch(error => {
         console.log(error);
         setLoadingMessage('hidden');
       });
@@ -125,10 +120,10 @@ const ContextDetailScreen = ({navigation}: Props) => {
   useEffect(() => {
     // update context types on first load
     getContextTypes()
-      .then((newContextTypes) => {
+      .then(newContextTypes => {
         dispatch({type: 'SET_CONTEXT_TYPES', payload: newContextTypes});
       })
-      .catch((error) => {
+      .catch(error => {
         console.log(error);
       });
   }, []);
@@ -150,7 +145,7 @@ const ContextDetailScreen = ({navigation}: Props) => {
   useEffect(() => {
     // prevent leaving the screen if there are changes
     // @ts-ignore
-    const unsubscribe = tabNav.addListener('tabPress', (e) => {
+    const unsubscribe = tabNav.addListener('tabPress', e => {
       if (canSubmit) {
         // @ts-ignore
         e.preventDefault();
@@ -194,14 +189,14 @@ const ContextDetailScreen = ({navigation}: Props) => {
         dispatch({type: SET_CAN_SUBMIT_CONTEXT, payload: false});
         setLoadingMessage('hidden');
       })
-      .catch((e) => {
+      .catch(e => {
         console.log(e);
         alert('Error Updating Context');
         setLoadingMessage('hidden');
       });
   }
 
-  async function uploadImage(imagePickerResponse) {
+  async function uploadImage(imagePickerResponse: ImagePickerResponse) {
     Alert.alert(
       'Context Photo Upload',
       'Confirm',
@@ -218,13 +213,13 @@ const ContextDetailScreen = ({navigation}: Props) => {
             const form: FormData = new FormData();
             try {
               form.append('photo', {
-                uri: imagePickerResponse.uri,
-                type: imagePickerResponse.type,
-                name: imagePickerResponse.fileName,
+                uri: imagePickerResponse.assets![0].uri,
+                type: imagePickerResponse.assets![0].type,
+                name: imagePickerResponse.assets![0].fileName,
               } as any);
               await uploadContextPhoto(
                 form,
-                selectedContext.id,
+                selectedContext!.id,
                 ({loaded, total}) =>
                   setUploadedPct(Math.round((loaded * 100) / total)),
               );
@@ -260,8 +255,8 @@ const ContextDetailScreen = ({navigation}: Props) => {
       />
       <CameraModal
         isVisible={isPickingImage}
-        onTakePhoto={() => {
-          ImagePicker.launchCamera(
+        onTakePhoto={async () => {
+          launchCamera(
             imagePickerOptions,
             async (response: ImagePickerResponse) => {
               if (response.didCancel) {
@@ -294,13 +289,13 @@ const ContextDetailScreen = ({navigation}: Props) => {
 
       <ContextForm
         openingDate={openingDate}
-        onOpeningDateChange={(date) => setOpeningDate(date)}
+        onOpeningDateChange={date => setOpeningDate(date)}
         closingDate={closingDate}
-        onClosingDateChange={(date) => setClosingDate(date)}
+        onClosingDateChange={date => setClosingDate(date)}
         contextType={contextType}
-        onContextTypeChange={(cType) => setContextType(cType)}
+        onContextTypeChange={cType => setContextType(cType)}
         description={description}
-        onDescriptionChange={(text) => setDescription(text)}
+        onDescriptionChange={text => setDescription(text)}
         onReset={() => {
           setDescription(selectedContext.description);
           setContextType(selectedContext.type);

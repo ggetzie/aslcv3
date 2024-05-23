@@ -1,11 +1,13 @@
 import React from 'react';
 import {View} from 'react-native';
 
-interface Props {
-  style?: any;
-}
-
-export const RowView: React.FC<Props> = (props) => {
+export const RowView = ({
+  style,
+  children,
+}: {
+  style: any;
+  children: React.ReactNode;
+}) => {
   return (
     <View
       style={[
@@ -16,9 +18,9 @@ export const RowView: React.FC<Props> = (props) => {
           justifyContent: 'space-between',
           overflow: 'visible',
         },
-        props.style ? props.style : {},
+        style ? style : {},
       ]}>
-      {props.children}
+      {children}
     </View>
   );
 };

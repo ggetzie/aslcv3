@@ -12,7 +12,6 @@ import DateTimePicker from 'react-native-modal-datetime-picker';
 import {useSelector} from 'react-redux';
 import {verticalScale} from '../constants/nativeFunctions';
 import {RowView} from './general/RowView';
-import {TextInputComponent} from './general/TextInputComponent';
 import {ButtonComponent} from './general/ButtonComponent';
 import {AslReducerState} from '../../redux/reducer';
 
@@ -35,13 +34,13 @@ const ContextForm = ({
   onReset,
   onSave,
 }: {
-  openingDate: string;
+  openingDate: string | null;
   onOpeningDateChange: (date: string) => void;
-  closingDate: string;
+  closingDate: string | null;
   onClosingDateChange: (date: string) => void;
-  contextType: string;
+  contextType: string | null;
   onContextTypeChange: (type: string) => void;
-  description: string;
+  description: string | null;
   onDescriptionChange: (description: string) => void;
   onReset: () => void;
   onSave: () => void;
@@ -61,7 +60,7 @@ const ContextForm = ({
     <View style={styles.container}>
       <OpeningDatePicker
         isVisible={openingVisible}
-        onConfirm={(date) => {
+        onConfirm={date => {
           onOpeningDateChange(YYYY_MM_DD(date));
           setOpeningVisible(false);
         }}
@@ -69,7 +68,7 @@ const ContextForm = ({
       />
       <ClosingDatePicker
         isVisible={closingVisible}
-        onConfirm={(date) => {
+        onConfirm={date => {
           onClosingDateChange(YYYY_MM_DD(date));
           setClosingVisible(false);
         }}
@@ -85,7 +84,7 @@ const ContextForm = ({
           selectedValue={contextType}
           onValueChange={(value: string, pos) => onContextTypeChange(value)}>
           {contextTypes
-            .map((type) => <Picker.Item key={type} label={type} value={type} />)
+            .map(type => <Picker.Item key={type} label={type} value={type} />)
             .concat(<Picker.Item key="select" label="Select" value={null} />)}
         </Picker>
       </RowView>
@@ -112,7 +111,7 @@ const ContextForm = ({
         <View style={styles.textContainer}>
           <TextInput
             value={description}
-            onChangeText={(text) => onDescriptionChange(text)}
+            onChangeText={text => onDescriptionChange(text)}
             multiline={true}
             style={{
               paddingHorizontal: 10,
